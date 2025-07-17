@@ -6,6 +6,15 @@ on:
       message:
         required: true
         type: string
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: true
+      OPENAI_API_KEY:
+        required: true
+      GCP_PROJECT_ID:
+        required: true
+      GCP_SA_KEY:
+        required: true
 
 jobs:
   print-message:
