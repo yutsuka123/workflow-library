@@ -1,4 +1,3 @@
-# .github/workflows/shared.yml
 name: 共通処理ワークフロー
 
 on:
@@ -13,4 +12,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: メッセージ出力
-        run: echo "共通ワークフロー: ${{ inputs.message }}"
+        run: |
+          echo "共通ワークフロー: ${{ inputs.message }}"
