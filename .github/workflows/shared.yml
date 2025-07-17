@@ -17,9 +17,59 @@ on:
         required: true
 
 jobs:
-  print-message:
+  shared-job:
     runs-on: ubuntu-latest
     steps:
+      - name: ソースをチェックアウト
+        uses: actions/checkout@v4
+
       - name: メッセージ出力
         run: |
           echo "共通ワークフロー: ${{ inputs.message }}"
+
+      - name: Slack 通知を送信
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "✅ GitHub Actions 実行が成功しました！（${{ github.repository }}）"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: ChatGPT によるコミット要約
+        run: |
+          curl https://api.openai.com/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+            -d '{
+              "model": "gpt-4",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "以下のGitコミットメッセージを要約してください：\n'"$(git log -1 --pretty=format:%s)"'"
+                }
+              ]
+            }'
+
+      - name: Google Cloud CLI セットアップ
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Google Cloud CLI インストール
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          install_components: true
+
+      - name: Gemini CLI 実行（例: sample.py のコードレビュー）
+        run: |
+          if gcloud alpha genai chat --help > /dev/null 2>&1; then
+            gcloud alpha genai chat \
+              --prompt "以下のコードをレビューして日本語でフィードバックしてください:\n$(cat sample.py)" \
+              --location=us-central1
+          else
+            echo "❌ Gemini CLI (gcloud alpha genai) はこの環境で使用できません。"
+            exit 1
+          fi
