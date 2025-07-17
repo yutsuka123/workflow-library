@@ -9,12 +9,6 @@ on:
     secrets:
       SLACK_WEBHOOK_URL:
         required: true
-      OPENAI_API_KEY:
-        required: true
-      GCP_PROJECT_ID:
-        required: true
-      GCP_SA_KEY:
-        required: true
 
 jobs:
   shared-job:
@@ -35,38 +29,3 @@ jobs:
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-      - name: ChatGPT によるコミット要約
-        run: |
-          COMMIT_MESSAGE=$(git log -1 --pretty=format:%s)
-          JSON_PAYLOAD=$(jq -n \
-            --arg msg "以下のGitコミットメッセージを要約してください：\n${COMMIT_MESSAGE}" \
-            '{model: "gpt-4", messages: [{role: "user", content: $msg}]}')
-          echo "$JSON_PAYLOAD" > payload.json
-
-          curl https://api.openai.com/v1/chat/completions \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-            -d @payload.json
-
-      - name: Google Cloud CLI 認証
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Google Cloud CLI セットアップ
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          install_components: true
-
-      - name: Gemini CLI 実行（例: sample.py のコードレビュー）
-        run: |
-          if gcloud alpha genai chat --help > /dev/null 2>&1; then
-            gcloud alpha genai chat \
-              --prompt "以下のコードをレビューして日本語でフィードバックしてください:\n$(cat sample.py)" \
-              --location=us-central1
-          else
-            echo "❌ Gemini CLI (gcloud alpha genai) はこの環境で使用できません。"
-            exit 0
-          fi
