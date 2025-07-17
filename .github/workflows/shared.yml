@@ -13,20 +13,13 @@ on:
 jobs:
   shared-job:
     runs-on: ubuntu-latest
-
     steps:
-      - name: ソースをチェックアウト
-        uses: actions/checkout@v4
-
-      - name: メッセージ出力
-        run: echo "共通ワークフロー: ${{ inputs.message }}"
-
-      - name: Slack 通知を送信
+      - name: Slack通知
         uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
             {
-              "text": "✅ GitHub Actions 実行が成功しました！（${{ github.repository }}）"
+              "text": "✅ 成功: ${{ inputs.message }}"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
