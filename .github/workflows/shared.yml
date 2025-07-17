@@ -1,3 +1,4 @@
+# .github/workflows/shared.yml
 name: 共通処理ワークフロー
 
 on:
@@ -9,17 +10,57 @@ on:
     secrets:
       SLACK_WEBHOOK_URL:
         required: true
+      CLAUDE_API_KEY:
+        required: false  # Claude用
+      OPENAI_API_KEY:
+        required: false  # OpenAI用（どちらか一方で可）
 
 jobs:
   shared-job:
     runs-on: ubuntu-latest
+
     steps:
+      - name: ソースをチェックアウト
+        uses: actions/checkout@v4
+
       - name: Slack通知
         uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
             {
-              "text": "✅ 成功: ${{ inputs.message }}"
+              "text": "✅ 実行成功: ${{ inputs.message }}"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: ClaudeまたはOpenAIでコミット要約
+        run: |
+          LAST_COMMIT=$(git log -1 --pretty=format:%s)
+          echo "コミットメッセージ: $LAST_COMMIT"
+
+          if [[ -n "${{ secrets.CLAUDE_API_KEY }}" ]]; then
+            echo "Claude に送信中..."
+            curl https://api.anthropic.com/v1/messages \
+              -H "x-api-key: ${{ secrets.CLAUDE_API_KEY }}" \
+              -H "anthropic-version: 2023-06-01" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"model\": \"claude-3-sonnet-20240229\",
+                \"max_tokens\": 300,
+                \"messages\": [{\"role\": \"user\", \"content\": \"以下のGitコミットメッセージを日本語で要約してください:\n$LAST_COMMIT\"}]
+              }"
+          elif [[ -n "${{ secrets.OPENAI_API_KEY }}" ]]; then
+            echo "OpenAI に送信中..."
+            curl https://api.openai.com/v1/chat/completions \
+              -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"model\": \"gpt-4\",
+                \"messages\": [
+                  {\"role\": \"user\", \"content\": \"以下のGitコミットメッセージを要約してください:\n$LAST_COMMIT\"}
+                ]
+              }"
+          else
+            echo "⚠️ APIキーが設定されていません。Claude または OpenAI を設定してください。"
+            exit 1
+          fi
