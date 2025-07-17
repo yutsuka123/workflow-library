@@ -37,24 +37,25 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: ChatGPT によるコミット要約
+        shell: bash
         run: |
           COMMIT_MESSAGE=$(git log -1 --pretty=format:%s)
-          cat <<EOF > payload.json
-          {
-            "model": "gpt-4",
-            "messages": [
+
+          echo "{
+            \"model\": \"gpt-4\",
+            \"messages\": [
               {
-                "role": "user",
-                "content": "以下のGitコミットメッセージを要約してください：\n${COMMIT_MESSAGE}"
+                \"role\": \"user\",
+                \"content\": \"以下のGitコミットメッセージを要約してください：\\n${COMMIT_MESSAGE}\"
               }
             ]
-          }
-          EOF
+          }" > payload.json
 
           curl https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
             -d @payload.json
+
 
       - name: Google Cloud CLI 認証
         uses: google-github-actions/auth@v2
