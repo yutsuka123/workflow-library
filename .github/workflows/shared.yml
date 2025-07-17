@@ -52,12 +52,12 @@ jobs:
               ]
             }'
 
-      - name: Google Cloud CLI セットアップ
+      - name: Google Cloud CLI 認証
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Google Cloud CLI インストール
+      - name: Google Cloud CLI セットアップ
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
